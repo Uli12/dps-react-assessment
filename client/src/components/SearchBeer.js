@@ -1,12 +1,18 @@
 import React, { Component } from 'react';
 import _ from 'lodash'
 import { Grid, Search, Card } from 'semantic-ui-react';
+import { fetchBeers } from '../actions/beers';
+import { connect } from 'react-redux';
 import axios from 'axios';
 
 const source = () => {
-  axios.get(`/api/all_beers`)
-
-
+  axios.put(`/api/all_beers?page=1&per_page=10`)
+.then( res => {
+  this.props.dispatch({ type: 'SET_BEERS', beers: res.data.entries })
+})
+.catch( err => {
+  // TODO: set error flash message
+})
 }
 
 class SearchBeer extends Component {
@@ -27,6 +33,8 @@ class SearchBeer extends Component {
       const re = new RegExp(_.escapeRegExp(this.state.value), 'i')
       const isMatch = result => re.test(result.title)
 
+      
+      
       this.setState({
         isLoading: false,
         results: _.filter(source, isMatch),
@@ -49,11 +57,15 @@ class SearchBeer extends Component {
             {...this.props}
           />
         </Grid.Column>
-        <Card.Group stackable textAlign='center' itemsPerRow={5}>
+        <Card.Group stackable itemsPerRow={5}>
           {results}
         </Card.Group>
       </Grid>
     );}
 }
-
-export default SearchBeer;
+const mapStateToProps = (state) => {
+  return { 
+    beers: state.beers,
+  }
+}
+export default connect(mapStateToProps)(SearchBeer);

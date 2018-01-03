@@ -1,29 +1,24 @@
 import React, { Component } from 'react';
 import { Segment, Header, Card, Image } from 'semantic-ui-react';
 import InfiniteScroll from 'react-infinite-scroller';
+import { connect } from 'react-redux';
+import { fetchBeers } from '../actions/beers';
 import beer_icons from '../images/beer_icons.jpg';
 import SearchBeer from './SearchBeer'
 import axios from 'axios';
 
-class Beers extends Component {
-  state = { beers: []}  
 
+class Beers extends Component {
+  state = { page: 1, hasMore: true }
+  
   componentDidMount() {
-    axios.get(`/api/all_beers?page=1&per_page=10`)
-      .then( res => {
-        // let { name, description } = res.data;
-        this.setState({ beers: res.data.entries });
-        // this.props.dispatch(fetchBeers());
-      })
-      .catch(err =>
-        console.log('Error fetching and parsing data'));
+    this.props.dispatch(fetchBeers());
   }
 
-  
   displayBeers = () => {
-    return this.state.beers.map( beer => {
+    return this.props.beers.map( beer => {
       return(
-        <Card>
+        <Card key={beer.id}>
             {beer.labels ?
             <Image
               centered
@@ -51,19 +46,45 @@ class Beers extends Component {
       );
     })
   }
+
+  loadFunc = () => {
+    axios.get(`/api/all_beers?page=${this.state.page + 1}&per_page=10`)
+      .then( res => {
+        this.props.dispatch({ type: 'MORE_BEERS', beers: res.data.entries });
+        this.setState({ page: this.state.page + 1, hasMore: res.data.has_more })
+      })
+      .catch( err => {
+    });
+  }
   
 
-render() {
-  return(
-    <Segment basic >
-      <SearchBeer />
-      <Header as='h1' textAlign='center' color='green'>Beers</Header>
-      <Card.Group stackable textAlign='center' itemsPerRow={5}>
-        { this.displayBeers() }
-      </Card.Group>
-    </Segment>
-  );
-}
-};
+  render() {
+    return(
+      <Segment basic >
+        <SearchBeer />
+        <Header as='h1' textAlign='center' color='green'>Beers</Header>
+        <Segment basic style={{ height: '700px', overflow: 'auto' }}>
+          <InfiniteScroll
+            pageStart={0}
+            loadMore={this.loadFunc}
+            hasMore={true || false}
+            loader={<div className="loader">Loading ...</div>}
+            useWindow={false}
+            >
+          <Card.Group stackable itemsPerRow={5}>
+            { this.displayBeers() }
+          </Card.Group>
+          </InfiniteScroll>
+        </Segment>
+      </Segment>
+    );
+  }
+  };
 
-export default Beers;
+const mapStateToProps = (state) => {
+  return { 
+    beers: state.beers,
+  }
+}
+
+export default connect(mapStateToProps)(Beers);
